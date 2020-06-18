@@ -14,34 +14,39 @@ class MainView(View):
 class SignUpView(View):
     def post(self, request):
         data = json.loads(request.body)
-        
-        hased_pw = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt())
-        decoded_hashed_pw = hased_pw.decode('utf-8')
 
         try:
             # validate_email(data['email'])
+             
+            hased_pw = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt())
+            decoded_hashed_pw = hased_pw.decode('utf-8')
+
             if data['username'] == '':
-                return JsonResponse({'message':'ID_IS_REQUIRED'}, status=401)
+                return JsonResponse({'message':'username is required.'}, status=401)
             
             elif data['password'] == '':
-                return JsonResponse({'message':'PASSWORD_IS_REQUIRED'}, status=401)
+                return JsonResponse({'message':'password is required.'}, status=401)
             
             elif Users.objects.filter(username=data['username']).exists():
-                return JsonResponse({'message':'ID_EXISTS'}, status=409)
+                return JsonResponse({'message':'username already exists.'}, status=409)
             
-            elif not Users.objects.filter(username=data['username']).exists():
+            if not Users.objects.filter(username=data['username']).exists():
                 Users(
                     username = data['username'],
                     password = decoded_hashed_pw
                 ).save()
-                return JsonResponse({'message':'WELCOME'}, status=200)
+                return JsonResponse({'message':'WELCOME, ' + data['username']}, status=200)
 
-        # except IntegrityError: - 아이디 중복검사. models에서 unique = True 설정해준다.
-        # except ValidationError:
+        except IntegrityError:
+            return JsonResponse({'message':'username already exists.'}, status=409)
+       
+       # except ValidationError:
 
+        except KeyError as e:
+            return JsonResponse({'message': str(e) + ' is right key name. The key names are username and password.'}, status=400)
 
         except:
-             return JsonResponse({'message':'INVALID_ID'}, status=401)
+             return JsonResponse({'message':'Something wrong.'}, status=401)
         
 
     def get(self, request):
@@ -58,21 +63,17 @@ class LogInView(View):
                 
                 if bcrypt.checkpw(data['password'].encode('utf-8'), user_id.password.encode('utf-8')) == True:
                     access_token = jwt.encode({'id':user_id.id}, 'secret', algorithm='HS256')
-                    print(1)
-                    return JsonResponse({'token': access_token.decode('utf-8')}, status=200)
+                    return JsonResponse({'message':'WELCOME BACK, ' + data['username'], 'token' : access_token.decode('utf-8')}, status=200)
                 else:
-                    return JsonResponse({'message':'비밀번호가 틀립니다.'}, status=401)
+                    return JsonResponse({'message':'Wrong password.'}, status=401)
             else:
-                print(2)
-                return JsonResponse({'message':'아이디가 없습니다.'}, status=401)
+                return JsonResponse({'message':'Wrong username.'}, status=401)
         
         #except Users.DoesNotExist:
-        #except KeyError:
+        except KeyError as e:
+            return JsonResponse({'message': str(e) + ' is right key name. The key names are username and password.'}, status=400)
 
-        except Exception as e:
-            print(3)
-            return e
-            #return JsonResponse({'message':'INVALID_USER'}, status=401)
+
     
 
 

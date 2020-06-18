@@ -13,15 +13,41 @@ class CommentView(View):
         try:
             user = request.user
             data = json.loads(request.body)
+            if data['comment'] == '':
+                return HttpResponse(status=400)
+
             Comments(
                 username_id = user.id,
                 comment = data['comment'],
             ).save()
 
-            return JsonResponse({'message': data['comment'] + ' has added.'}, status=200)
+            return JsonResponse({'comment': data['comment']}, status=200)
+       
+        except KeyError as e:
+            return JsonResponse({'message': e + 'Invalid key. The key name is comment.'})
         
+        #except (
+            #CryptoException,
+            #jwt.exceptions.DecodeError,
+            #jwt.ExpiredSignature,
+            #User.DoesNotExist,
+        #):
+            #raise BadRequest('Invalid token.')
+
+
+        except jwt.exceptions.InvalidSignatureError:
+            raise Exception('Invalide token.')
+            #return JsonResponse({'message':'Invalid token.'}, status=401)
+
+        except jwt.exceptions.DecodeError:
+            raise Exception('Invalid token.')
+            #return JsonResponse({'message':'Invalid token.'}, status=401)
+
+        #except Exception as a:
+            #return a
+
         except:
-            return JsonResponse({'message':''}, status=401)
+            return JsonResponse({'message':'Something wrong.'}, status=401)
 
 
     def get(self, request):
